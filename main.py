@@ -1,11 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Depends
+from sqlalchemy.orm import Session
 from pydantic import BaseModel
 from typing import List
 from datetime import datetime
 
+from database import engine, Base, get_db
+import models
+
+# This creates the actual table in Postgres if it doesn't exist yet
+Base.metadata.create_all(bind=engine)
+
 app = FastAPI(title="Home Services API")
 
-# This defines what a booking request must look like
+# Request shape — what the customer sends
 class BookingRequest(BaseModel):
     customer_name: str
     phone_number: str
@@ -13,7 +20,7 @@ class BookingRequest(BaseModel):
     service_type: str
     preferred_time: str
 
-# This defines what we send back after saving it
+# Response shape — what we send back
 class BookingResponse(BaseModel):
     id: int
     customer_name: str
@@ -22,11 +29,10 @@ class BookingResponse(BaseModel):
     service_type: str
     preferred_time: str
     status: str
-    created_at: str
+    created_at: datetime
 
-# Temporary in-memory storage (resets when server restarts)
-bookings_db = []
-booking_id_counter = 1
+    class Config:
+        from_attributes = True
 
 @app.get("/")
 def read_root():
@@ -44,22 +50,20 @@ def get_services():
     return {"services": services}
 
 @app.post("/bookings", response_model=BookingResponse)
-def create_booking(booking: BookingRequest):
-    global booking_id_counter
-    new_booking = {
-        "id": booking_id_counter,
-        "customer_name": booking.customer_name,
-        "phone_number": booking.phone_number,
-        "address": booking.address,
-        "service_type": booking.service_type,
-        "preferred_time": booking.preferred_time,
-        "status": "pending",
-        "created_at": datetime.now().isoformat()
-    }
-    bookings_db.append(new_booking)
-    booking_id_counter += 1
+def create_booking(booking: BookingRequest, db: Session = Depends(get_db)):
+    new_booking = models.Booking(
+        customer_name=booking.customer_name,
+        phone_number=booking.phone_number,
+        address=booking.address,
+        service_type=booking.service_type,
+        preferred_time=booking.preferred_time,
+        status="pending"
+    )
+    db.add(new_booking)
+    db.commit()
+    db.refresh(new_booking)
     return new_booking
 
 @app.get("/bookings", response_model=List[BookingResponse])
-def get_all_bookings():
-    return bookings_db
+def get_all_bookings(db: Session = Depends(get_db)):
+    return db.query(models.Booking).all()
