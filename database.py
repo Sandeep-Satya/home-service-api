@@ -1,4 +1,5 @@
 import boto3
+import json
 import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
@@ -14,9 +15,8 @@ def get_database_url():
     response = client.get_secret_value(
         SecretId="home-services/database-url"
     )
-    # Secret is stored as plain string, not JSON
-    return response["SecretString"]
-
+    secret = json.loads(response["SecretString"])
+    return secret["DATABASE_URL"]
 DATABASE_URL = get_database_url()
 
 engine = create_engine(DATABASE_URL)
