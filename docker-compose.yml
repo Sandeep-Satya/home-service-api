@@ -7,5 +7,9 @@ services:
       - "8000:8000"
     environment:
       - ENV=production
-volumes:
-  postgres_data:
+    logging:
+      driver: awslogs
+      options:
+        awslogs-region: us-east-1
+        awslogs-group: /home-services/api
+        awslogs-stream: ec2-container

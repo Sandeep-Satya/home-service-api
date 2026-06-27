@@ -91,3 +91,6 @@ def get_booking(booking_id: int, db: Session = Depends(get_db)):
     if not booking:
         raise HTTPException(status_code=404, detail=f"Booking with id {booking_id} not found")
     return booking
+@app.get("/health")
+def health_check():
+    return {"status": "healthy"}
