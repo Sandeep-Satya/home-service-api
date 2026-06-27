@@ -1,11 +1,24 @@
+import boto3
+import json
+import os
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, declarative_base
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
-DATABASE_URL = os.getenv("DATABASE_URL")
+def get_database_url():
+    if os.getenv("ENV") != "production":
+        return os.getenv("DATABASE_URL")
+    
+    client = boto3.client("secretsmanager", region_name="us-east-1")
+    response = client.get_secret_value(
+        SecretId="home-services/database-url"
+    )
+    secret = json.loads(response["SecretString"])
+    return secret["DATABASE_URL"]
+
+DATABASE_URL = get_database_url()
 
 engine = create_engine(DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
