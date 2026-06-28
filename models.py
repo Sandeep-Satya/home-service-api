@@ -1,16 +1,23 @@
+cat > ~/home-services-api/models.py << 'EOF'
 from sqlalchemy import Column, Integer, String, DateTime, ForeignKey
 from database import Base
 from datetime import datetime
 
 class Service(Base):
     __tablename__ = "services"
-
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, unique=True, nullable=False)
 
+class User(Base):
+    __tablename__ = "users"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    email = Column(String, unique=True, nullable=False)
+    password = Column(String, nullable=False)
+    role = Column(String, default="customer")
+
 class Booking(Base):
     __tablename__ = "bookings"
-
     id = Column(Integer, primary_key=True, index=True)
     customer_name = Column(String, nullable=False)
     phone_number = Column(String, nullable=False)
@@ -19,3 +26,5 @@ class Booking(Base):
     preferred_time = Column(String, nullable=False)
     status = Column(String, default="pending")
     created_at = Column(DateTime, default=datetime.utcnow)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True)
+EOF
